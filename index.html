@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 오버워치 웹 게임 (Overwatch 3D Web)</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 3D WebGL Canvas -->
+        <canvas id="webgl-canvas"></canvas>
+
+        <!-- Red Damage Border -->
+        <div id="damage-vignette"></div>
+
+        <!-- Quick Top Left Menu Buttons -->
+        <div id="top-left-controls">
+            <button class="ow-btn" id="btn-hero-select">영웅 변경 (H)</button>
+            <button class="ow-btn" id="btn-sound-toggle">🔊 사운드 ON</button>
+            <button class="ow-btn" id="btn-restart">연습장 리셋</button>
+        </div>
+
+        <!-- OVERWATCH HUD -->
+        <div id="hud">
+            <!-- Top Center: Objective Point A -->
+            <div id="objective-hud">
+                <div class="obj-header">
+                    <span class="obj-letter">A</span>
+                    <span class="obj-title">거점 A (<span id="obj-progress">0%</span>)</span>
+                </div>
+                <div class="obj-bar">
+                    <div id="obj-fill"></div>
+                </div>
+                <div id="obj-text">거점 A로 이동하여 점령하세요</div>
+            </div>
+
+            <!-- Top Right: Kill Feed -->
+            <div id="kill-feed"></div>
+
+            <!-- Elimination Banner -->
+            <div id="elim-banner">
+                <div class="elim-skull">💀</div>
+                <div class="elim-content">
+                    <div class="elim-title">처치</div>
+                    <div class="elim-target" id="elim-name">적 훈련용 봇 100%</div>
+                </div>
+            </div>
+
+            <!-- Center Crosshairs & Hitmarkers -->
+            <div id="reticle-container">
+                <div id="crosshair" class="crosshair crosshair-soldier76"></div>
+                <div id="hitmarker" class="hitmarker"></div>
+            </div>
+
+            <!-- Bottom Left: Hero & Health Status -->
+            <div id="hero-status">
+                <div id="hero-portrait">🪖</div>
+                <div class="health-container">
+                    <div id="hero-name">솔저: 76</div>
+                    <div class="hp-number-row">
+                        <span id="hp-text">200</span>
+                    </div>
+                    <div class="hp-bar-bg">
+                        <div id="hp-bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Center: Ultimate Dial -->
+            <div id="ult-container">
+                <div class="ult-circle">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="ult-bg" cx="50" cy="50" r="40"></circle>
+                        <circle class="ult-bar" id="ult-ring-progress" cx="50" cy="50" r="40"></circle>
+                    </svg>
+                    <div class="ult-center-info">
+                        <div id="ult-percent">0%</div>
+                        <span class="ult-key-badge">Q</span>
+                    </div>
+                </div>
+                <div id="ult-prompt">궁극기 준비 완료! (Q)</div>
+            </div>
+
+            <!-- Bottom Right: Weapon Ammo & Abilities -->
+            <div id="weapon-status">
+                <div class="abilities-group">
+                    <!-- Tracer Blink Charges -->
+                    <div id="tracer-blinks">
+                        <div class="blink-pip ready"></div>
+                        <div class="blink-pip ready"></div>
+                        <div class="blink-pip ready"></div>
+                    </div>
+
+                    <!-- Ability 1 (Shift) -->
+                    <div class="ability-slot" id="ability-shift">
+                        <span class="ability-icon">🏃</span>
+                        <span class="ability-key">Shift</span>
+                        <div class="ability-cd-overlay" id="ability-shift-cd"></div>
+                    </div>
+
+                    <!-- Ability 2 (E) -->
+                    <div class="ability-slot" id="ability-e">
+                        <span class="ability-icon">➕</span>
+                        <span class="ability-key">E</span>
+                        <div class="ability-cd-overlay" id="ability-e-cd"></div>
+                    </div>
+
+                    <!-- Secondary Fire (Right Click) -->
+                    <div class="ability-slot" id="ability-rclick">
+                        <span class="ability-icon">🚀</span>
+                        <span class="ability-key">우클릭</span>
+                        <div class="ability-cd-overlay" id="ability-rclick-cd"></div>
+                    </div>
+                </div>
+
+                <div class="ammo-box">
+                    <div id="reload-prompt">[R] 재장전</div>
+                    <span id="ammo-current">25</span>
+                    <span id="ammo-max">/ 25</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB Scoreboard -->
+        <div id="scoreboard">
+            <div class="score-title">전투 기록 (SCOREBOARD)</div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">처치 수</div>
+                    <div class="stat-value" id="stat-kills">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">사망</div>
+                    <div class="stat-value" id="stat-deaths">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">총 피해량</div>
+                    <div class="stat-value" id="stat-damage">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">치유량</div>
+                    <div class="stat-value" id="stat-healing">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">명중률</div>
+                    <div class="stat-value" id="stat-accuracy">0.0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="overlay-screen">
+            <div class="ow-logo-title">OVERWATCH 3D</div>
+            <div class="ow-subtitle">웹 브라우저 3D 오버워치 훈련장 & 거점 전장</div>
+
+            <div class="hero-cards-grid">
+                <div class="hero-card selected" data-hero="soldier76">
+                    <div class="hero-card-icon">🪖</div>
+                    <div class="hero-card-name">솔저: 76</div>
+                    <div class="hero-card-role">공격 (돌격소총)</div>
+                    <div class="hero-card-abilities">
+                        • 펄스 소총 & 나선 로켓<br>
+                        • Shift: 질주 (스프린트)<br>
+                        • E: 생체장 (치유)<br>
+                        • Q: 전술 조준경 (자동 조준)
+                    </div>
+                </div>
+
+                <div class="hero-card" data-hero="tracer">
+                    <div class="hero-card-icon">⚡</div>
+                    <div class="hero-card-name">트레이서</div>
+                    <div class="hero-card-role">공격 (초고속 점멸)</div>
+                    <div class="hero-card-abilities">
+                        • 펄스 쌍권총 (초당 20발)<br>
+                        • Shift / 우클릭: 점멸 (3회 충전)<br>
+                        • E: 시간 역행 (3초 전 회복)<br>
+                        • Q: 펄스 폭탄 (350 피해)
+                    </div>
+                </div>
+
+                <div class="hero-card" data-hero="genji">
+                    <div class="hero-card-icon">🥷</div>
+                    <div class="hero-card-name">겐지</div>
+                    <div class="hero-card-role">공격 (사이보그 닌자)</div>
+                    <div class="hero-card-abilities">
+                        • 수리검 (연사 / 부채꼴)<br>
+                        • Space: 이단 점프<br>
+                        • Shift: 질풍참 (처치 시 쿨타임 초기화)<br>
+                        • E: 튕겨내기 / Q: 용검
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary-ow" id="btn-start-game">게임 시작 (PLAY)</button>
+
+            <div class="instructions-box">
+                <div>[WASD] 이동 &nbsp;|&nbsp; [마우스] 시점 조준 &nbsp;|&nbsp; [좌클릭] 사격/공격</div>
+                <div>[우클릭 / Shift / E / Q] 영웅 기술 &nbsp;|&nbsp; [R] 재장전 &nbsp;|&nbsp; [Space] 점프 &nbsp;|&nbsp; [Tab] 점수판 &nbsp;|&nbsp; [H] 영웅 변경</div>
+            </div>
+        </div>
+
+        <!-- Hero Selection Screen (In-Game Change) -->
+        <div id="hero-select-screen" class="overlay-screen" style="display: none;">
+            <div class="ow-logo-title" style="font-size: 56px;">영웅 선택</div>
+            <div class="ow-subtitle">플레이할 영웅을 선택하세요</div>
+
+            <div class="hero-cards-grid">
+                <div class="hero-card" data-hero="soldier76">
+                    <div class="hero-card-icon">🪖</div>
+                    <div class="hero-card-name">솔저: 76</div>
+                    <div class="hero-card-role">공격 (Damage)</div>
+                    <div class="hero-card-abilities">
+                        펄스 소총, 나선 로켓, 질주, 생체장, 전술 조준경
+                    </div>
+                </div>
+
+                <div class="hero-card" data-hero="tracer">
+                    <div class="hero-card-icon">⚡</div>
+                    <div class="hero-card-name">트레이서</div>
+                    <div class="hero-card-role">공격 (Damage)</div>
+                    <div class="hero-card-abilities">
+                        펄스 쌍권총, 점멸(3회), 시간 역행, 펄스 폭탄
+                    </div>
+                </div>
+
+                <div class="hero-card" data-hero="genji">
+                    <div class="hero-card-icon">🥷</div>
+                    <div class="hero-card-name">겐지</div>
+                    <div class="hero-card-role">공격 (Damage)</div>
+                    <div class="hero-card-abilities">
+                        수리검, 이단 점프, 질풍참(처치 시 초기화), 튕겨내기, 용검
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary-ow" id="btn-confirm-hero">선택 완료</button>
+        </div>
+    </div>
+
+    <!-- Main Entry Module -->
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
